@@ -19,7 +19,7 @@ headers = {
 
 def download_one(d):
     assert len(d['url']) == 1
-    path = f'tmp/{d["preffix"]}/{d["image_id"]}.jpg'
+    path = f'data/{d["preffix"]}/{d["image_id"]}.jpg'
     if os.path.isfile(path):
         return
     try:

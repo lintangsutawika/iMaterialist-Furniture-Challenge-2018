@@ -16,7 +16,8 @@ BATCH_SIZE = 16
 
 def get_model():
     print('[+] loading model... ', end='', flush=True)
-    model = models.densenet201_finetune(NB_CLASSES)
+    # model = models.densenet201_finetune(NB_CLASSES)
+    model = models.resnet152_finetune(NB_CLASSES)
     if use_gpu:
         model.cuda()
     print('done')
