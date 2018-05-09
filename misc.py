@@ -3,13 +3,16 @@ from pathlib import Path
 
 import pandas as pd
 from PIL import Image
+import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 from augmentation import HorizontalFlip
 
 NB_CLASSES = 128
 IMAGE_SIZE = 224
-
+# IMAGE_SIZE = 299
+# IMAGE_SIZE = 331
+# IMAGE_SIZE = 320
 
 class FurnitureDataset(Dataset):
     def __init__(self, preffix: str, transform=None):
@@ -42,6 +45,7 @@ class FurnitureDataset(Dataset):
         img = Image.open(row['path'])
         if self.transform:
             img = self.transform(img)
+
         target = row['label_id'] - 1 if 'label_id' in row else -1
         return img, target
 
@@ -70,4 +74,39 @@ preprocess_with_augmentation = transforms.Compose([
                            saturation=0.3),
     transforms.ToTensor(),
     normalize
+])
+
+preprocess_tencrop = transforms.Compose([
+    transforms.Resize((IMAGE_SIZE*2, IMAGE_SIZE*2)),
+    transforms.TenCrop(IMAGE_SIZE),
+    transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
+    transforms.Lambda(lambda crops: torch.stack([normalize(crop) for crop in crops]))
+])
+
+preprocess_256crop = transforms.Compose([
+    transforms.Resize((256, 256)),
+    transforms.TenCrop(IMAGE_SIZE),
+    transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
+    transforms.Lambda(lambda crops: torch.stack([normalize(crop) for crop in crops]))
+])
+
+preprocess_288crop = transforms.Compose([
+    transforms.Resize((288, 288)),
+    transforms.TenCrop(IMAGE_SIZE),
+    transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
+    transforms.Lambda(lambda crops: torch.stack([normalize(crop) for crop in crops]))
+])
+
+preprocess_320crop = transforms.Compose([
+    transforms.Resize((320, 320)),
+    transforms.TenCrop(IMAGE_SIZE),
+    transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
+    transforms.Lambda(lambda crops: torch.stack([normalize(crop) for crop in crops]))
+])
+
+preprocess_352crop = transforms.Compose([
+    transforms.Resize((352, 352)),
+    transforms.TenCrop(IMAGE_SIZE),
+    transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
+    transforms.Lambda(lambda crops: torch.stack([normalize(crop) for crop in crops]))
 ])

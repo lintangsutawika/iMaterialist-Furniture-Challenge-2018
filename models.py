@@ -90,6 +90,21 @@ class FinetunePretrainedmodels(nn.Module):
         return self.net(x)
 
 
+class DualPathNetworkFinetune(nn.Module):
+    finetune = True
+
+    def __init__(self, num_classes: int, net_cls, net_kwards):
+        super().__init__()
+        self.net = net_cls(**net_kwards)
+        self.net.classifier = nn.Conv2d(self.net.classifier.in_channels, num_classes, self.net.classifier.kernel_size, self.net.classifier.stride)
+
+    def fresh_params(self):
+        return self.net.classifier.parameters()
+
+    def forward(self, x):
+        return self.net(x)
+
+
 resnet18_finetune = partial(ResNetFinetune, net_cls=M.resnet18)
 resnet34_finetune = partial(ResNetFinetune, net_cls=M.resnet34)
 resnet50_finetune = partial(ResNetFinetune, net_cls=M.resnet50)
@@ -104,3 +119,19 @@ densenet201_finetune = partial(DenseNetFinetune, net_cls=M.densenet201)
 xception_finetune = partial(FinetunePretrainedmodels,
                             net_cls=pretrainedmodels.xception,
                             net_kwards={'pretrained': 'imagenet'})
+
+inceptionresnetv2_finetune = partial(FinetunePretrainedmodels,
+                            net_cls=pretrainedmodels.inceptionresnetv2,
+                            net_kwards={'pretrained': 'imagenet'})
+
+nasnetalarge_finetune = partial(FinetunePretrainedmodels,
+                            net_cls=pretrainedmodels.nasnetalarge,
+                            net_kwards={'num_classes':1000, 'pretrained': 'imagenet'})
+
+se_resnext101_32x4d_finetune = partial(FinetunePretrainedmodels,
+                            net_cls=pretrainedmodels.se_resnext101_32x4d,
+                            net_kwards={'num_classes':1000, 'pretrained': 'imagenet'})
+
+dpn107_finetune = partial(DualPathNetworkFinetune,
+                            net_cls=pretrainedmodels.dpn107,
+                            net_kwards={'pretrained': 'imagenet+5k'})
