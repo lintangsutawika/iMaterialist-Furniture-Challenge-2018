@@ -16,6 +16,7 @@ test_dataset = torch.load('test_dataset.pth')
 
 test_pred = None
 for test_pth in onlyfiles:
+    print(test_pth)
     if test_pred is None:
         test_pred = torch.load(join('test_predictions',test_pth))['px'].mean(dim=2).unsqueeze(dim=2)
     else:
@@ -23,6 +24,7 @@ for test_pth in onlyfiles:
 
 test_pred = test_pred.mean(dim=2)
 # test_pred = test_pred * weighted_average
+# test_pred = 0.3*test_pred[:,:,0]+0.2*test_pred[:,:,1]+0.1*test_pred[:,:,2]+0.4*test_pred[:,:,3]
 test_prob = F.softmax(Variable(test_pred), dim=1).data.numpy()
 test_predicted = np.argmax(test_prob, axis=1)
 test_predicted += 1
