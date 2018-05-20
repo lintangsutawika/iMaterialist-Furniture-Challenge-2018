@@ -135,3 +135,7 @@ se_resnext101_32x4d_finetune = partial(FinetunePretrainedmodels,
 dpn107_finetune = partial(DualPathNetworkFinetune,
                             net_cls=pretrainedmodels.dpn107,
                             net_kwards={'pretrained': 'imagenet+5k'})
+
+senet154_finetune = partial(FinetunePretrainedmodels,
+                            net_cls=pretrainedmodels.senet154,
+                            net_kwards={'num_classes':1000, 'pretrained': 'imagenet'})

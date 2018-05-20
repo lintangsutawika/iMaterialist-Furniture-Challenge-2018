@@ -4,23 +4,25 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torch.utils.data.sampler import WeightedRandomSampler
 from torch.autograd import Variable
 
 import models
 import utils
 from utils import RunningMean, use_gpu
-from misc import FurnitureDataset, preprocess, preprocess_with_augmentation, NB_CLASSES, preprocess_hflip, preprocess_tencrop, preprocess_256crop, preprocess_288crop, preprocess_320crop, preprocess_352crop
+from misc import FurnitureDataset, get_class_weights, preprocess, preprocess_with_augmentation, NB_CLASSES, preprocess_hflip, preprocess_tencrop, preprocess_256crop, preprocess_288crop, preprocess_320crop, preprocess_352crop
 
 BATCH_SIZE = 16
 
-
 def get_model():
     print('[+] loading model... ', end='', flush=True)
-    model = models.densenet201_finetune(NB_CLASSES)
+    # model = models.densenet201_finetune(NB_CLASSES)
     # model = models.dpn107_finetune(NB_CLASSES)
     # model = models.densenet161_finetune(NB_CLASSES)
     # model = models.se_resnext101_32x4d_finetune(NB_CLASSES)
     # model = models.nasnetalarge_finetune(NB_CLASSES)
+    # model = models.inceptionresnetv2_finetune(NB_CLASSES)
+    model = models.senet154_finetune(NB_CLASSES)
     if use_gpu:
         model.cuda()
     print('done')
@@ -32,7 +34,9 @@ def predict():
     model.load_state_dict(torch.load('best_val_weight.pth'))
     model.eval()
 
-    tta_preprocess = [preprocess, preprocess_hflip, preprocess_256crop, preprocess_288crop, preprocess_320crop, preprocess_352crop]
+    tta_preprocess = [preprocess, preprocess_hflip, preprocess_tencrop, preprocess_256crop, preprocess_288crop, preprocess_320crop, preprocess_352crop]
+    # tta_preprocess = [preprocess_tencrop, preprocess_256crop, preprocess_288crop, preprocess_320crop, preprocess_352crop]
+    # tta_preprocess = [preprocess, preprocess_hflip, preprocess_tencrop, preprocess_320crop, preprocess_352crop]
 
     data_loaders = []
     for transform in tta_preprocess:
@@ -66,12 +70,18 @@ def predict():
 
 
 def train():
-    train_dataset = FurnitureDataset('train', transform=preprocess_tencrop)
-    # train_dataset = FurnitureDataset('train', transform=preprocess_with_augmentation)
+    # train_dataset = FurnitureDataset('train', transform=preprocess_tencrop)
+    train_dataset = FurnitureDataset('train', transform=preprocess_with_augmentation)
     val_dataset = FurnitureDataset('val', transform=preprocess_352crop)
+
+    class_weight, dataset_length = get_class_weights('train')
+    weighted_id = train_dataset.data['label_id'].apply(lambda x: class_weight[x-1])
+    weighted_sampler = WeightedRandomSampler(weighted_id, dataset_length, replacement=True)
     training_data_loader = DataLoader(dataset=train_dataset, num_workers=4,
                                       batch_size=BATCH_SIZE,
-                                      shuffle=True)
+                                      sampler=weighted_sampler,
+                                      shuffle=False)
+                                      # shuffle=True)
     validation_data_loader = DataLoader(dataset=val_dataset, num_workers=1,
                                         batch_size=BATCH_SIZE,
                                         shuffle=False)
@@ -89,6 +99,8 @@ def train():
     for epoch in range(25):
         print(f'epoch {epoch}')
         if epoch == 1:
+            # lr = 0.00001
+            # lr = 0.00003
             lr = 0.00003
             print(f'[+] set lr={lr}')
         if patience == 2:
@@ -111,18 +123,25 @@ def train():
         for inputs, labels in pbar:
             batch_size = inputs.size(0)
 
+            # #Compatible with TenCrops
+            # try:
+            #     bs, ncrops, c, h, w = inputs.size()
+            # except:
+            #     bs, c, h, w = inputs.size()
+
             # inputs = Variable(inputs)
             # labels = Variable(labels)
             # if use_gpu:
             #     inputs = inputs.cuda()
             #     labels = labels.cuda()
 
+            # outputs = model(inputs.view(-1, c, h, w))
 
-            #Compatible with TenCrops
-            try:
-                bs, ncrops, c, h, w = inputs.size()
-            except:
-                bs, c, h, w = inputs.size()
+            # #Compatible with TenCrops
+            # try:
+            #     outputs = outputs.view(bs, ncrops, -1).mean(1) # avg over crops
+            # except:
+            #     outputs = outputs.view(bs,-1)
 
             inputs = Variable(inputs)
             labels = Variable(labels)
@@ -130,15 +149,7 @@ def train():
                 inputs = inputs.cuda()
                 labels = labels.cuda()
 
-            outputs = model(inputs.view(-1, c, h, w))
-
-            #Compatible with TenCrops
-            try:
-                outputs = outputs.view(bs, ncrops, -1).mean(1) # avg over crops
-            except:
-                outputs = outputs.view(bs,-1)
-
-            # outputs = model(inputs)
+            outputs = model(inputs)
             _, preds = torch.max(outputs.data, dim=1)
 
             loss = criterion(outputs, labels)

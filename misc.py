@@ -2,16 +2,18 @@ import json
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 from PIL import Image
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 from augmentation import HorizontalFlip
+from sklearn.utils import class_weight
 
 NB_CLASSES = 128
-IMAGE_SIZE = 224
+IMAGE_SIZE = 224 #SeNet, se_resnext101
 # IMAGE_SIZE = 299
-# IMAGE_SIZE = 331
+# IMAGE_SIZE = 331 #NasNet
 # IMAGE_SIZE = 320
 
 class FurnitureDataset(Dataset):
@@ -48,6 +50,27 @@ class FurnitureDataset(Dataset):
 
         target = row['label_id'] - 1 if 'label_id' in row else -1
         return img, target
+        
+def get_class_weights(preffix):
+
+    # data = pd.read_json(open(preffix,'r'))
+    # y_train = []
+    # for entry in data['annotations']:
+    #     y_train.append(entry['label_id'])
+    # y_train = np.asarray(y_train)
+
+    path = preffix
+    path = f'data/{path}.json'
+    img_idx = {int(p.name.split('.')[0])
+               for p in Path(f'data/{preffix}').glob('*.jpg')}
+    data = json.load(open(path))
+    if 'annotations' in data:
+        data = pd.DataFrame(data['annotations'])
+    data = data[data.image_id.isin(img_idx)].copy()
+
+    y_train = data['label_id']
+
+    return class_weight.compute_class_weight('balanced', np.unique(y_train), y_train), len(y_train)
 
 
 normalize = transforms.Normalize(
