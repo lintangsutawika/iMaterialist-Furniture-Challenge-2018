@@ -7,7 +7,6 @@ from torch.utils.data import DataLoader
 from torch.autograd import Variable
 
 import models
-import utils
 from utils import RunningMean, use_gpu
 from misc import FurnitureDataset, preprocess, preprocess_with_augmentation, NB_CLASSES, preprocess_hflip, preprocess_tencrop, preprocess_256crop, preprocess_288crop, preprocess_320crop, preprocess_352crop
 import torch.utils.data as utils
@@ -56,7 +55,7 @@ criterion = nn.CrossEntropyLoss().cuda()
 optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=0.0001)
 
 for epoch in range(25):
-    pbar = tqdm(training_data_loader, total=len(training_data_loader))
+    pbar = tqdm(train_dataloader, total=len(train_dataloader))
     for inputs, labels in pbar:
 
         inputs = Variable(inputs)
@@ -65,10 +64,13 @@ for epoch in range(25):
             inputs = inputs.cuda()
             labels = labels.cuda()
 
-        train = model(inputs)
-        test_prob = F.softmax(Variable(train_pred), dim=1).data.numpy()
-        train_predicted = np.argmax(test_prob, axis=1)
-        train_predicted += 1
+        
+        for i in range(128):
+            train = model(inputs)
+
+        # test_prob = F.softmax(Variable(train_pred), dim=1).data.numpy()
+        # train_predicted = np.argmax(test_prob, axis=1)
+        # train_predicted += 1
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
