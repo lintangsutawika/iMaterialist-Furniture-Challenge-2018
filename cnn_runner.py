@@ -29,7 +29,8 @@ def get_model():
     return model
 
 
-def predict():
+def predict(dataset):
+    print(f'[+] chosen dataset: {dataset}')
     model = get_model()
     model.load_state_dict(torch.load('best_val_weight.pth'))
     model.eval()
@@ -40,8 +41,8 @@ def predict():
 
     data_loaders = []
     for transform in tta_preprocess:
-        test_dataset = FurnitureDataset('test', transform=transform)
-        data_loader = DataLoader(dataset=test_dataset, num_workers=1,
+        predict_dataset = FurnitureDataset(dataset, transform=transform)
+        data_loader = DataLoader(dataset=predict_dataset, num_workers=1,
                                  batch_size=BATCH_SIZE,
                                  shuffle=False)
         data_loaders.append(data_loader)
@@ -51,23 +52,7 @@ def predict():
         'lx': lx.cpu(),
         'px': px.cpu(),
     }
-    torch.save(data, 'test_prediction.pth')
-
-    data_loaders = []
-    for transform in tta_preprocess:
-        test_dataset = FurnitureDataset('val', transform=transform)
-        data_loader = DataLoader(dataset=test_dataset, num_workers=1,
-                                 batch_size=BATCH_SIZE,
-                                 shuffle=False)
-        data_loaders.append(data_loader)
-
-    lx, px = utils.predict_tta(model, data_loaders)
-    data = {
-        'lx': lx.cpu(),
-        'px': px.cpu(),
-    }
-    torch.save(data, 'val_prediction.pth')
-
+    torch.save(data, '{}_prediction.pth'.format(dataset))
 
 def train():
     # train_dataset = FurnitureDataset('train', transform=preprocess_tencrop)
@@ -182,9 +167,11 @@ def train():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('mode', choices=['train', 'predict'])
+    parser.add_argument('predict', choices=['test', 'val', 'train'], default='test')
+    # parser.add_argument('model', type=str, default='best_val_weight.pth')
     args = parser.parse_args()
     print(f'[+] start `{args.mode}`')
     if args.mode == 'train':
         train()
     elif args.mode == 'predict':
-        predict()
+        predict(args.predict)
