@@ -5,7 +5,8 @@ import numpy as np
 import pandas as pd
 from misc import FurnitureDataset, preprocess
 
-test_dataset = FurnitureDataset('test', transform=preprocess)
+# test_dataset = FurnitureDataset('test', transform=preprocess)
+test_dataset = torch.load('test_dataset.pth')
 
 test_pred = torch.load('test_prediction.pth')
 test_prob = F.softmax(Variable(test_pred['px']), dim=1).data.numpy()
